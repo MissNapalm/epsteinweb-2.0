@@ -1,88 +1,116 @@
 (function() {
-    const searchInput = document.getElementById('node-search');
-    const searchResults = document.getElementById('search-results');
-
-    if (!searchInput) return;
-
-    // Hide the dropdown entirely - we don't need it
-    if (searchResults) searchResults.style.display = 'none';
-
-    searchInput.addEventListener('input', function() {
-        const query = this.value.trim().toLowerCase();
-
-        if (query.length < 1) {
-            resetHighlight();
+    function waitForGraph() {
+        if (typeof node === 'undefined' || d3.selectAll('circle').size() === 0) {
+            setTimeout(waitForGraph, 200);
             return;
         }
+        initSearch();
+    }
 
-        // Find best match as they type
-        const matches = graphData.nodes.filter(n =>
-            n.label.toLowerCase().includes(query)
-        );
+    function initSearch() {
+        const searchInput = document.getElementById('node-search');
+        if (!searchInput) return;
 
-        if (matches.length === 0) {
-            resetHighlight();
-            return;
-        }
+        let currentHighlighted = null;
+        const isDark = () => !document.body.classList.contains('light-mode');
 
-        // Highlight the best match (exact start match first, then includes)
-        const bestMatch = matches.find(n => n.label.toLowerCase().startsWith(query)) || matches[0];
-        triggerNodeHover(bestMatch.id);
-    });
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
 
-    searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            this.value = '';
-            this.blur();
-            resetHighlight();
-        }
-    });
+            if (query.length < 1) {
+                resetAll();
+                currentHighlighted = null;
+                return;
+            }
 
-    function triggerNodeHover(nodeId) {
-        // First try dispatching the real mouseover event that graph.js uses
-        let dispatched = false;
-        d3.selectAll('.node-group').each(function(d) {
-            if (d && d.id === nodeId) {
-                // Reset any previous hover first
-                d3.selectAll('.node-group').each(function(dd) {
-                    d3.select(this).dispatch('mouseout');
-                });
-                // Now trigger hover on the match
-                d3.select(this).dispatch('mouseover');
-                dispatched = true;
+            // Find ALL matching nodes
+            const matchIds = new Set();
+            graphData.nodes.forEach(n => {
+                if (n.label.toLowerCase().includes(query) || n.id.toLowerCase().includes(query)) {
+                    matchIds.add(n.id);
+                }
+            });
+
+            if (matchIds.size === 0) {
+                resetAll();
+                currentHighlighted = null;
+                return;
+            }
+
+            // Find all nodes connected to ANY match
+            const connectedIds = new Set(matchIds);
+            graphData.links.forEach(l => {
+                const s = typeof l.source === 'object' ? l.source.id : l.source;
+                const t = typeof l.target === 'object' ? l.target.id : l.target;
+                if (matchIds.has(s)) connectedIds.add(t);
+                if (matchIds.has(t)) connectedIds.add(s);
+            });
+
+            // Use the global `node` selection from graph.js — it has correct data binding
+            node.each(function(d) {
+                const el = d3.select(this);
+                if (matchIds.has(d.id)) {
+                    el.style('opacity', 1);
+                    el.select('circle')
+                        .attr('r', d.radius * 1.3)
+                        .style('filter', 'drop-shadow(0 0 12px rgba(255,255,255,0.6))');
+                } else if (connectedIds.has(d.id)) {
+                    el.style('opacity', 0.6);
+                    el.select('circle')
+                        .attr('r', d.radius)
+                        .style('filter', null);
+                } else {
+                    el.style('opacity', 0.05);
+                    el.select('circle')
+                        .attr('r', d.radius)
+                        .style('filter', null);
+                }
+            });
+
+            // Dim/show links via the global `link` selection
+            link.each(function(d) {
+                const s = typeof d.source === 'object' ? d.source.id : d.source;
+                const t = typeof d.target === 'object' ? d.target.id : d.target;
+                const linked = matchIds.has(s) || matchIds.has(t);
+                d3.select(this).attr('stroke-opacity', linked ? 0.7 : 0.02);
+            });
+
+            currentHighlighted = matchIds;
+        });
+
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                this.blur();
+                resetAll();
+                currentHighlighted = null;
             }
         });
 
-        if (!dispatched) {
-            manualHighlight(nodeId);
+        function resetAll() {
+            // Restore node opacity and circle radius using the global `node` selection
+            const vis = typeof getVisibleNodes === 'function' ? getVisibleNodes() : null;
+            node.each(function(d) {
+                const el = d3.select(this);
+                const visible = vis ? vis.has(d.id) : true;
+                el.style('opacity', visible ? 1 : 0.04);
+                el.select('circle')
+                    .attr('r', d.radius)
+                    .style('filter', null);
+            });
+
+            // Restore link opacity
+            if (vis) {
+                link.each(function(d) {
+                    const s = typeof d.source === 'object' ? d.source.id : d.source;
+                    const t = typeof d.target === 'object' ? d.target.id : d.target;
+                    d3.select(this).attr('stroke-opacity', (vis.has(s) && vis.has(t)) ? 0.5 : 0.02);
+                });
+            } else {
+                link.attr('stroke-opacity', 0.5);
+            }
         }
     }
 
-    function manualHighlight(nodeId) {
-        const connectedIds = new Set([nodeId]);
-        graphData.links.forEach(link => {
-            const s = typeof link.source === 'object' ? link.source.id : link.source;
-            const t = typeof link.target === 'object' ? link.target.id : link.target;
-            if (s === nodeId) connectedIds.add(t);
-            if (t === nodeId) connectedIds.add(s);
-        });
-
-        d3.selectAll('.node-group').style('opacity', d =>
-            connectedIds.has(d.id) ? 1 : 0.08
-        );
-        d3.selectAll('.link, line').each(function(d) {
-            if (!d) return;
-            const s = typeof d.source === 'object' ? d.source.id : d.source;
-            const t = typeof d.target === 'object' ? d.target.id : d.target;
-            d3.select(this).style('opacity', (s === nodeId || t === nodeId) ? 0.8 : 0.03);
-        });
-    }
-
-    function resetHighlight() {
-        d3.selectAll('.node-group').each(function() {
-            d3.select(this).dispatch('mouseout');
-        });
-        d3.selectAll('.node-group').style('opacity', 1);
-        d3.selectAll('.link, line').style('opacity', null);
-    }
+    waitForGraph();
 })();

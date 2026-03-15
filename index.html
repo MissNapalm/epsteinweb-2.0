@@ -31,6 +31,7 @@
             -webkit-backdrop-filter: blur(12px);
             overflow-x: auto;
             transition: background 0.4s ease, border-color 0.4s ease;
+            align-items: center;
         }
         .filter-check-label {
             display: inline-flex;
@@ -219,10 +220,74 @@
         body.light-mode .legend-title { color: #999; }
         body.light-mode .legend-item { color: #555; }
         body.light-mode .legend-dot { border-color: #fff; }
+
+        /* ─── Search Box ─── */
+        #search-container {
+            position: relative;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        #node-search {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #fff;
+            border-radius: 4px;
+            width: 200px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #node-search::placeholder { color: rgba(255,255,255,0.4); }
+        #node-search:focus { border-color: rgba(255,255,255,0.6); }
+        #search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 260px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(15,15,25,0.97);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            display: none;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .search-result-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #ccc;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.15s;
+        }
+        .search-result-item:hover { background: rgba(255,255,255,0.08); }
+        .search-result-item .sr-name { font-weight: 600; color: #fff; }
+        .search-result-item .sr-role { font-size: 10px; color: #888; margin-top: 2px; }
+
+        /* Light mode search */
+        body.light-mode #node-search {
+            border-color: rgba(0,0,0,0.2);
+            color: #333;
+        }
+        body.light-mode #node-search::placeholder { color: rgba(0,0,0,0.35); }
+        body.light-mode #node-search:focus { border-color: rgba(0,0,0,0.4); }
+        body.light-mode #search-results { background: rgba(255,255,255,0.97); border-color: rgba(0,0,0,0.1); }
+        body.light-mode .search-result-item { color: #555; border-color: rgba(0,0,0,0.05); }
+        body.light-mode .search-result-item:hover { background: rgba(0,0,0,0.04); }
+        body.light-mode .search-result-item .sr-name { color: #111; }
+        body.light-mode .search-result-item .sr-role { color: #999; }
     </style>
 </head>
 <body>
-    <div id="filterTabs"></div>
+    <div id="filterTabs">
+        <div id="search-container">
+            <input type="text" id="node-search" placeholder="Search by name..." />
+        </div>
+    </div>
     <svg id="graph"></svg>
     <div id="tooltip"></div>
 
@@ -255,5 +320,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="data.js"></script>
     <script src="graph.js"></script>
+    <script src="search.js"></script>
+    <!-- Add AFTER your main graph script so D3 nodes exist -->
 </body>
 </html>

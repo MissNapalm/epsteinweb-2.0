@@ -15,6 +15,63 @@
         }
         svg { display: block; }
 
+        /* ─── Title Screen ─── */
+        #titleScreen {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 99999;
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            transition: opacity 1.2s ease, visibility 1.2s ease;
+        }
+        #titleScreen.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        #titleScreen blockquote {
+            color: rgba(255,255,255,0.5);
+            font-size: clamp(15px, 2.5vw, 22px);
+            font-style: italic;
+            font-weight: 300;
+            line-height: 1.8;
+            max-width: 520px;
+            margin-bottom: 10px;
+            letter-spacing: 0.2px;
+        }
+        #titleScreen cite {
+            color: rgba(255,255,255,0.2);
+            font-size: clamp(10px, 1.4vw, 13px);
+            font-style: normal;
+            font-weight: 400;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 80px;
+        }
+        #enterBtn {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.35);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            padding: 12px 36px;
+            cursor: pointer;
+            transition: all 0.5s ease;
+        }
+        #enterBtn:hover {
+            border-color: rgba(255,255,255,0.4);
+            color: rgba(255,255,255,0.7);
+        }
+
         /* ─── Filter Tabs ─── */
         #filterTabs {
             position: fixed;
@@ -283,6 +340,13 @@
     </style>
 </head>
 <body>
+    <!-- ─── TITLE SCREEN ─── -->
+    <div id="titleScreen">
+        <blockquote>"Lying is done with words and also with silence."</blockquote>
+        <cite>— Adrienne Rich</cite>
+        <button id="enterBtn">Take Me In</button>
+    </div>
+
     <div id="filterTabs">
         <div id="search-container">
             <input type="text" id="node-search" placeholder="Search by name..." />
@@ -322,5 +386,10 @@
     <script src="graph.js"></script>
     <script src="search.js"></script>
     <!-- Add AFTER your main graph script so D3 nodes exist -->
+    <script>
+        document.getElementById('enterBtn').addEventListener('click', function() {
+            document.getElementById('titleScreen').classList.add('hidden');
+        });
+    </script>
 </body>
 </html>
